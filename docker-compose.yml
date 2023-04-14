@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:latest
+    ports:
+      - ${MYSQL_PORT:-3306}:3306
+    environment:
+      TZ: Asia/Tokyo
+      MYSQL_ROOT_PASSWORD: password
+      #MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      #MYSQL_RANDOM_ROOT_PASSWORD: "no"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    platform: linux/x86_64
+    #command: mysqld --skip-grant-tables --skip-networking
+
+  app:
+    build: .
+    command: bash -c "rm -f tmp/pids/server.pid && rails server -b 0.0.0.0"
+    depends_on:
+      - db
+      - chrome
+    environment:
+      SELENIUM_DRIVER_URL: http://chrome:4444/wd/hub
+    env_file: .env
+    ports:
+      - ${APP_PORT:-3000}:3000
+      - ${WEBPACK_PORT:-3035}:3035
+    volumes:
+      - .:/myapp:cached
+      - node_modules:/myapp/node_modules
+      - bundle:/usr/local/bundle
+
+  chrome:
+    image: seleniarm/standalone-chromium:latest
+    restart: always
+    ports:
+      - 5900:5900
+      - 4444:4444
+    volumes:
+      - /dev/shm:/dev/shm
+
+volumes:
+  mysql-data:
+  node_modules:
+  bundle:
